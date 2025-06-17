@@ -5,10 +5,10 @@ from .serializers import ProblemDetailSerializer,ProblemListSerializer
 
 # Create your views here.
 
-class ProblemListView(generics.ListCreateAPIView):
+class ProblemListView(generics.ListAPIView):
     queryset = Problem.objects.all()
     serializer_class = ProblemListSerializer 
 
-class ProblemDetialView(generics.RetrieveUpdateDestroyAPIView):
+class ProblemDetialView(generics.RetrieveAPIView):
     queryset = Problem.objects.all()
     serializer_class = ProblemDetailSerializer
