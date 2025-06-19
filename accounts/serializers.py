@@ -67,18 +67,3 @@ class RegisterSerializer(serializers.Serializer):
 
         except Exception as e:
             raise serializers.ValidationError(f"Error occured when creating user {str(e)}")
-
-
-class LogoutSerializer(serializer.Serializer):
-    refresh = serializers.CharField();
-
-    def validate(self,attrs):
-        self.token = attrs['refresh']
-        return attrs
-
-    def save(self):
-        try:
-            token = RefreshToken(self.token)
-            token.blacklist()
-        except TokenError:
-            raise serializers.ValidateError("invalid or expired token")

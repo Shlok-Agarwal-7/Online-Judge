@@ -4,6 +4,7 @@ from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class LoginAPIView(APIView):
@@ -33,11 +34,20 @@ class RegisterAPIView(APIView):
 
         return Response(serializer.errors,status = 400)
 
+
+
 class LogoutAPIView(APIView):
 
+    authentication_classes = []
+    permission_classes = []
+
     def post(self,request):
-        serializer = LogoutSerializer(data = request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"detial" : "Logout succesful"},status = 200)
-        return Response(serializer.errors,status = 400)
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            # print(refresh_token)
+            token.blacklist()
+            return Response({"detail" : "Successfully logged out."})
+            
+        except Exception as e:
+            return Response({"detail" : f"{str(e)}"},status = 400)

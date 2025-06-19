@@ -23,3 +23,59 @@ class ProblemListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Problem
         fields = ("id","title","created_by","created_at")
+
+
+class ProblemSerializer(serializers.ModelSerializer):
+    testcases = TestCaseSerializer(many = True)
+
+    class Meta:
+        model = Problem
+        fields = ("title","question","testcases")
+
+    def create(self,validated_data):
+        testcases_data = validated_data.pop('testcases',[])
+
+        user = None
+
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            user = request.user
+        
+
+        try:
+            problem = Problem.objects.create(created_by = user ,**validated_data)
+
+            for testcase in testcases_data:
+                TestCase.objects.create(problem = problem,**testcase)
+        
+            return {
+                "detail" : f"Problem Created Succesfully {problem.id}"
+            }
+        except Exception as e :
+            raise serializers.ValidationError(f"An Error occured {e}")
+    
+    def update(self,instance,validated_data):
+        testcases_data = validated_data.pop('testcases',[])
+
+
+        try:
+            if(validated_data.get("title") != None):
+                instance.title = validated_data.get("title")
+
+
+            if(validated_data.get("question") != None):
+                instance.question = validated_data.get("question")
+            
+            instance.save()
+
+            for testcase in testcases_data:
+
+                TestCase.objects.create(problem = instance,**testcase)
+            
+
+            return {
+                "detial" : f"updated and added new testcases for {instance.id}"
+            }
+        except Exception as e:
+            raise serializers.ValidationError(f"An error occured {e}")
+

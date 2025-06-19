@@ -7,7 +7,7 @@ class Problem(models.Model):
     created_by = models.ForeignKey(User,on_delete=models.CASCADE)
     title = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
-    question = models.TextField()
+    question = models.TextField() 
 
     def __str__(self):
         return self.title
