@@ -6,6 +6,18 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+""" Student role{
+    "username" : "Student",
+    "password" : "test123",
+    "email" : "student@student.com"
+
+
+    Mentor role{
+    "username" : "mentor",
+    "password" : "test123",
+    "email": "mentor@mentor.com}
+
+}"""
 
 class LoginAPIView(APIView):
 

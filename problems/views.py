@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import Problem,TestCase
 from .serializers import ProblemDetailSerializer,ProblemListSerializer,ProblemSerializer
+from .permissions import isMentor
 
 # Create your views here.
 
@@ -18,6 +19,7 @@ class ProblemDetialView(generics.RetrieveAPIView):
 
 
 class ProblemCreateView(APIView):
+    permission_classes = [isMentor]
 
     def post(self,request):
         serializer = ProblemSerializer(data = request.data, context={"request": request})
@@ -26,10 +28,13 @@ class ProblemCreateView(APIView):
             data = serializer.save()
             return Response(data,status = 201)
         
-        return Response(serializers.errors,status = 400)
+        return Response(serializer.errors,status = 400)
 
 
 class ProblemDeleteView(generics.DestroyAPIView):
+
+    permission_classes = [isMentor]
+
     queryset = Problem.objects.all()
     serializer_class = ProblemSerializer
 
@@ -45,6 +50,9 @@ class ProblemDeleteView(generics.DestroyAPIView):
             return Response({"detail" : f"couldnt destroy due to server issues try later"},status = 500)
         
 class ProblemUpdateView(generics.UpdateAPIView):
+
+    permission_classes = [isMentor]
+
     queryset = Problem.objects.all()
     serializer_class = ProblemSerializer
 
@@ -54,7 +62,7 @@ class ProblemUpdateView(generics.UpdateAPIView):
 
         if(serializer.is_valid()):
             data = self.perform_update(serializer)
-            return Response(data,status = 200) 
+            return Response(str(data),status = 200) 
 
-        return Response(serializers.errors,status = 400)
+        return Response(serializer.errors,status = 400)
 

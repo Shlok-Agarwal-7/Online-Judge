@@ -1,8 +1,6 @@
 from rest_framework import serializers
 from .models import Problem,TestCase 
 
-
-
 # used for sending and receving data of testcase 
 class TestCaseSerializer(serializers.ModelSerializer):
     class Meta:
@@ -33,6 +31,7 @@ class ProblemSerializer(serializers.ModelSerializer):
         fields = ("title","question","testcases")
 
     def create(self,validated_data):
+
         testcases_data = validated_data.pop('testcases',[])
 
         user = None
@@ -53,29 +52,50 @@ class ProblemSerializer(serializers.ModelSerializer):
             }
         except Exception as e :
             raise serializers.ValidationError(f"An Error occured {e}")
+
     
     def update(self,instance,validated_data):
+
         testcases_data = validated_data.pop('testcases',[])
 
 
         try:
-            if(validated_data.get("title") != None):
+            if(validated_data.get("title") != " "):
                 instance.title = validated_data.get("title")
 
 
-            if(validated_data.get("question") != None):
+            if(validated_data.get("question") != " "):
                 instance.question = validated_data.get("question")
             
             instance.save()
 
-            for testcase in testcases_data:
+            for testcase_data in testcases_data:
 
-                TestCase.objects.create(problem = instance,**testcase)
-            
+                testcase_id = testcase_data.get("id")
+
+                try:
+
+                    if(testcase_id != None):
+                            testcase = TestCase.objects.get(id = testcase_id,problem = instance)
+                            
+                            for attr,value in testcase_data:
+                                if(attr != id):
+                                    setattr(testcase,attr,value)
+                            
+                            testcase.save()
+                    else:
+                    
+                            testcase = TestCase.objects.create(problem = instance,**testcase_data)
+                            
+
+                except Exception as e:
+                        raise serializers.ValidationError(f"An Error occured {e}")
+ 
 
             return {
-                "detial" : f"updated and added new testcases for {instance.id}"
+                "detial" : f"updated the fields and testcases for {instance.id}"
             }
+
         except Exception as e:
             raise serializers.ValidationError(f"An error occured {e}")
 
