@@ -9,11 +9,19 @@ from .permissions import isMentor
 # Create your views here.
 
 class ProblemListView(generics.ListAPIView):
+
+    authentication_classes = []
+    permission_classes = []
+
     queryset = Problem.objects.all()
     serializer_class = ProblemListSerializer 
 
 
 class ProblemDetialView(generics.RetrieveAPIView):
+
+    authentication_classes = []
+    permission_classes = []
+
     queryset = Problem.objects.all()
     serializer_class = ProblemDetailSerializer
 
@@ -61,8 +69,8 @@ class ProblemUpdateView(generics.UpdateAPIView):
         serializer = self.get_serializer(data = request.data,instance = instance)
 
         if(serializer.is_valid()):
-            data = self.perform_update(serializer)
-            return Response(str(data),status = 200) 
+            data = serializer.save()
+            return Response(data,status = 200) 
+
 
         return Response(serializer.errors,status = 400)
-

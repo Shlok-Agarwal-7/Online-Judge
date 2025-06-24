@@ -3,6 +3,8 @@ from .models import Problem,TestCase
 
 # used for sending and receving data of testcase 
 class TestCaseSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+    
     class Meta:
         model = TestCase
         fields = ("id","input","output")
@@ -14,13 +16,18 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Problem
-        fields = ("id","title","created_by","created_at","question","testcases")
+        fields = ("id","title","created_by","created_at","question","testcases","difficulty")
 
 # used for list of problems page 
 class ProblemListSerializer(serializers.ModelSerializer):
+    created_by = serializers.SerializerMethodField()
+
     class Meta:
         model = Problem
-        fields = ("id","title","created_by","created_at")
+        fields = ("id", "title", "created_by", "created_at", "difficulty")
+
+    def get_created_by(self, obj):
+        return obj.created_by.username
 
 
 class ProblemSerializer(serializers.ModelSerializer):
@@ -28,7 +35,7 @@ class ProblemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Problem
-        fields = ("title","question","testcases")
+        fields = ("title","question","testcases","difficulty")
 
     def create(self,validated_data):
 
@@ -58,6 +65,8 @@ class ProblemSerializer(serializers.ModelSerializer):
 
         testcases_data = validated_data.pop('testcases',[])
 
+        print(f"testcases_data {testcases_data}")
+
 
         try:
             if(validated_data.get("title") != " "):
@@ -67,19 +76,24 @@ class ProblemSerializer(serializers.ModelSerializer):
             if(validated_data.get("question") != " "):
                 instance.question = validated_data.get("question")
             
+            if(validated_data.get("difficulty") != " "):
+                instance.difficulty = validated_data.get("difficulty")
+            
             instance.save()
 
             for testcase_data in testcases_data:
 
                 testcase_id = testcase_data.get("id")
+                print(f"testcase_id {testcase_id}")
 
                 try:
 
                     if(testcase_id != None):
                             testcase = TestCase.objects.get(id = testcase_id,problem = instance)
-                            
-                            for attr,value in testcase_data:
-                                if(attr != id):
+
+                            for attr,value in testcase_data.items():
+                                print(f"attr {attr} value {value}")
+                                if(attr != testcase_id):
                                     setattr(testcase,attr,value)
                             
                             testcase.save()

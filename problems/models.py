@@ -9,6 +9,11 @@ class Problem(models.Model):
     title = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
     question = models.TextField() 
+    difficulty = models.CharField(max_length = 20,choices = [
+        ('Easy', 'Easy'),
+        ('Medium', 'Medium'),
+        ('Hard', 'Hard'),
+    ])
 
     def __str__(self):
         return f"{self.title} - {self.id}"
