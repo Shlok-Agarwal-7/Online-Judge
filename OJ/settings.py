@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +26,7 @@ SECRET_KEY = 'django-insecure--z^mif(-p4xlxo4j=$)17@(+o_13urw5ow&r6aa4!#cqw6r&+n
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -56,12 +57,24 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173"
 ]
 
+CORS_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+     "http://127.0.0.1:5173"
+]
+
 ROOT_URLCONF = 'OJ.urls'
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME" : timedelta(minutes= 5),
+    "REFRESH_TOKEN_LIFETIME" : timedelta(days = 1),
+}
 
 TEMPLATES = [
     {

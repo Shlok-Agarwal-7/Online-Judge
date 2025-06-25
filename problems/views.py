@@ -9,7 +9,7 @@ from .permissions import isMentor
 # Create your views here.
 
 class ProblemListView(generics.ListAPIView):
-
+    
     authentication_classes = []
     permission_classes = []
 
@@ -19,14 +19,12 @@ class ProblemListView(generics.ListAPIView):
 
 class ProblemDetialView(generics.RetrieveAPIView):
 
-    authentication_classes = []
-    permission_classes = []
-
     queryset = Problem.objects.all()
     serializer_class = ProblemDetailSerializer
 
 
 class ProblemCreateView(APIView):
+
     permission_classes = [isMentor]
 
     def post(self,request):
@@ -45,7 +43,7 @@ class ProblemDeleteView(generics.DestroyAPIView):
 
     queryset = Problem.objects.all()
     serializer_class = ProblemSerializer
-
+    
     def destroy(self,request,*args,**kwargs):
         instance = self.get_object()
 

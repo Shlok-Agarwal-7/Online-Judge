@@ -8,6 +8,7 @@ class Profile(models.Model):
     role = models.CharField(default = "Student") 
     user = models.OneToOneField(User,on_delete = models.CASCADE,related_name = "profile")
 
+    
     def __str__(self):
         return self.user.username
     

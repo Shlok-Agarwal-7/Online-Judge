@@ -4,6 +4,13 @@ from .models import Profile
 from rest_framework_simplejwt.tokens import RefreshToken,TokenError
 
 
+class ProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source = "user.username") 
+
+    class Meta:
+        model = Profile
+        fields = ["username","points"]
+
 # ! Serializer to Login the user 
 
 class LoginSerializer(serializers.Serializer):

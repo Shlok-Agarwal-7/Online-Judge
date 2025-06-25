@@ -81,33 +81,14 @@ class ProblemSerializer(serializers.ModelSerializer):
             
             instance.save()
 
+            TestCase.objects.filter(problem = instance).delete()
+
             for testcase_data in testcases_data:
-
-                testcase_id = testcase_data.get("id")
-                print(f"testcase_id {testcase_id}")
-
-                try:
-
-                    if(testcase_id != None):
-                            testcase = TestCase.objects.get(id = testcase_id,problem = instance)
-
-                            for attr,value in testcase_data.items():
-                                print(f"attr {attr} value {value}")
-                                if(attr != testcase_id):
-                                    setattr(testcase,attr,value)
-                            
-                            testcase.save()
-                    else:
-                    
-                            testcase = TestCase.objects.create(problem = instance,**testcase_data)
-                            
-
-                except Exception as e:
-                        raise serializers.ValidationError(f"An Error occured {e}")
+                testcase = TestCase.objects.create(problem = instance,**testcase_data)
  
 
             return {
-                "detial" : f"updated the fields and testcases for {instance.id}"
+                "detail" : f"updated the fields and testcases for {instance.id}"
             }
 
         except Exception as e:
