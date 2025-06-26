@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Problem,TestCase 
+from .models import Problem,TestCase,Submission
 
 # used for sending and receving data of testcase 
 class TestCaseSerializer(serializers.ModelSerializer):
@@ -94,3 +94,7 @@ class ProblemSerializer(serializers.ModelSerializer):
         except Exception as e:
             raise serializers.ValidationError(f"An error occured {e}")
 
+class SubmissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Submission
+        fields = ['id','code','langauge','verdict','problem']

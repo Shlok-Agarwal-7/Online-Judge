@@ -28,3 +28,15 @@ class TestCase(models.Model):
 
     def __str__(self):
         return f"{self.problem.title} - {self.id}" 
+
+
+class Submission(models.Model):
+    code = models.TextField()
+    language = models.CharField(max_length=50,choices = [
+        ("py","Python"),
+        ("cpp","C++")
+    ])
+    verdict = models.CharField(max_length = 50)
+    user = models.ForeignKey(User,on_delete = models.CASCADE,related_name = 'submissions')
+    problem = models.ForeignKey(Problem,on_delete = models.CASCADE,related_name = 'submissions')
+    
