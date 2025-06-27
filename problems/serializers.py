@@ -98,3 +98,11 @@ class SubmissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Submission
         fields = ['id','code','langauge','verdict','problem']
+
+
+
+class RunCodeSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    language = serializers.ChoiceField(choices =[("py","Python"),("cpp","C++"),("java","Java")]);
+    input_data = serializers.CharField(allow_blank = True)
+
