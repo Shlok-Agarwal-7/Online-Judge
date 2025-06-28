@@ -1,13 +1,16 @@
+import re
 import subprocess
 import uuid
 from pathlib import Path
 
 from django.conf import settings
 
+from .models import Problem
 
-def run_code(langauge, code, input_data):
+
+def run_code(language, code, input_data, u_ID=None):
     project_dir = Path(settings.BASE_DIR)
-    directories = ["code", "input", "output","compiled"]
+    directories = ["code", "input", "output", "compiled"]
 
     for directory in directories:
         dir_path = project_dir / directory
@@ -18,11 +21,12 @@ def run_code(langauge, code, input_data):
     code_dir = project_dir / "code"
     input_dir = project_dir / "input"
     output_dir = project_dir / "output"
-    compiled_dir = project_dir/ "compiled"
+    compiled_dir = project_dir / "compiled"
 
-    u_ID = str(uuid.uuid4())
+    if u_ID == None:
+        u_ID = str(uuid.uuid4())
 
-    code_file = f"{u_ID}.{langauge}"
+    code_file = f"{u_ID}.{language}"
     input_file = f"{u_ID}.txt"
     output_file = f"{u_ID}.txt"
 
@@ -40,27 +44,30 @@ def run_code(langauge, code, input_data):
         pass
 
     try:
-        run_cmd =[]
-        if langauge == "cpp":
-            exec_path = compiled_dir/f"{u_ID}.out"
-            compiled_cmd = ["g++",str(code_file_path),"-o",str(exec_path)]
-            compile_result = subprocess.run(compiled_cmd,capture_output = True,text = True)
+        run_cmd = []
+        if language == "cpp":
+            exec_path = compiled_dir / f"{u_ID}.out"
+            compiled_cmd = ["g++", str(code_file_path), "-o", str(exec_path)]
+            compile_result = subprocess.run(
+                compiled_cmd, capture_output=True, text=True
+            )
 
             if compile_result.returncode != 0:
-                output_path.write("Compilation Error : \n" + compile_result.stderr)
-                return output_path.read_text()
-            
+                output_file_path.write_text(
+                    "Compilation Error : \n" + compile_result.stderr
+                )
+                return output_file_path.read_text()
+
             run_cmd = [str(exec_path)]
 
-        elif langauge == "py":
-            run_cmd = ["python",str(code_file_path)]
+        elif language == "py":
+            run_cmd = ["python", str(code_file_path)]
 
-        elif langauge == "java":
-            run_cmd = ["java",str(code_file_path)]
+        elif language == "java":
+            run_cmd = ["java", str(code_file_path)]
 
         else:
             return "Unsupported language"
-
 
         with open(input_file_path, "r") as input_file:
             with open(output_file_path, "w") as output_file:
@@ -68,16 +75,41 @@ def run_code(langauge, code, input_data):
                     run_cmd,
                     stdin=input_file,
                     stdout=output_file,
-                    stderr = output_file,
-                    timeout = 3
-                    )
+                    stderr=output_file,
+                    timeout=3,
+                )
     except subprocess.TimeoutExpired:
         output_file_path.write_text("Time Limit Exceeded")
-    
-    except Exception as e :
+
+    except Exception as e:
         output_file_path.write_text("RunTime Error : \n" + str(e))
 
     with open(output_file_path, "r") as output_file:
         output_data = output_file.read()
 
     return output_data
+
+
+def submit_code(language, code, problem_id):
+
+    u_ID = str(uuid.uuid4())
+
+    testcases = Problem.objects.get(id=problem_id).testcases.all()
+
+    pattern = r"^(Compilation Error|RunTime Error) :"
+    i = 1
+
+    for testcase in testcases:
+        actual_output = run_code(language, code, testcase.input, u_ID)
+
+        if actual_output == "Time Limit Exceeded":
+            return {"verdict": f"TLE on Testcase {i}"}
+
+        if re.match(pattern, actual_output):
+            return {"verdict": f"WA on Testcase {i}"}
+        if actual_output.strip() != testcase.output.strip():
+            return {"verdict": f"WA on Testcase {i}"}
+
+        i += 1
+
+    return {"verdict": "Accepted"}

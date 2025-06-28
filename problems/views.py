@@ -2,7 +2,7 @@ from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .helpers import run_code
+from .helpers import run_code, submit_code
 from .models import Problem, Submission, TestCase
 from .permissions import isMentor
 from .serializers import (
@@ -10,6 +10,7 @@ from .serializers import (
     ProblemListSerializer,
     ProblemSerializer,
     RunCodeSerializer,
+    SubmissionSerializer,
 )
 
 # Create your views here.
@@ -86,9 +87,6 @@ class ProblemUpdateView(generics.UpdateAPIView):
 
 class RunCodeView(APIView):
 
-    authentication_classes = []
-    permission_classes = []
-
     def post(self, request):
         serializer = RunCodeSerializer(data=request.data)
         if serializer.is_valid():
@@ -96,7 +94,7 @@ class RunCodeView(APIView):
             language = serializer.validated_data["language"]
             input_data = serializer.validated_data["input_data"]
 
-            out = run_code(language,code, input_data)
+            out = run_code(language, code, input_data)
 
             # if err: return Response({"error": str(err)}, status=400)
 
@@ -104,3 +102,31 @@ class RunCodeView(APIView):
 
         else:
             return Response(serializer.errors, status=400)
+
+
+class SubmitCodeView(APIView):
+
+    def post(self, request):
+        serializer = SubmissionSerializer(data=request.data)
+        if serializer.is_valid():
+            code = serializer.validated_data["code"]
+            language = serializer.validated_data["language"]
+            problem = serializer.validated_data["problem"]
+            user = request.user
+
+            result = submit_code(language, code, problem.id)
+            verdict = result.get("verdict")
+
+            submission = Submission.objects.create(
+                code=code,
+                language=language,
+                verdict=verdict,
+                problem=problem,
+                user=user,
+            )
+
+            response_serializer = SubmissionSerializer(submission)
+
+            return Response(response_serializer.data, status=201)
+
+        return Response(serializer.errors, status=400)
