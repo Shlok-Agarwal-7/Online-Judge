@@ -130,3 +130,25 @@ class SubmitCodeView(APIView):
             return Response(response_serializer.data, status=201)
 
         return Response(serializer.errors, status=400)
+
+
+class GetUserSubmissions(generics.ListAPIView):
+    serializer_class = SubmissionSerializer
+
+    def get_queryset(self):
+        problem_id = self.request.query_params.get("problem")
+        if not problem_id:
+            return Submission.objects.none()
+
+        return Submission.objects.filter(problem=problem_id, user=self.request.user)
+
+
+class GetAllSubmissions(generics.ListAPIView):
+    serializer_class = SubmissionSerializer
+
+    def get_queryset(self):
+        problem_id = self.request.query_params.get("problem")
+        if not problem_id:
+            return Submission, objects.none()
+
+        return Submission.objects.filter(problem=problem_id)

@@ -103,7 +103,6 @@ class SubmissionSerializer(serializers.ModelSerializer):
         fields = ["id", "code", "language", "verdict", "problem"]
         read_only_fields = ["verdict"]
 
-
 class RunCodeSerializer(serializers.Serializer):
     code = serializers.CharField()
     language = serializers.ChoiceField(

@@ -96,7 +96,8 @@ def submit_code(language, code, problem_id):
 
     testcases = Problem.objects.get(id=problem_id).testcases.all()
 
-    pattern = r"^(Compilation Error|RunTime Error) :"
+    pattern1 = r"^(Compilation Error) :"
+    pattern2 = r"^(RunTime Error) :"
     i = 1
 
     for testcase in testcases:
@@ -105,8 +106,12 @@ def submit_code(language, code, problem_id):
         if actual_output == "Time Limit Exceeded":
             return {"verdict": f"TLE on Testcase {i}"}
 
-        if re.match(pattern, actual_output):
-            return {"verdict": f"WA on Testcase {i}"}
+        if re.match(pattern1, actual_output):
+            return {"verdict": "Compilation Error"}
+        
+        if re.match(pattern2,actual_ouptut):
+            return {"verdict" : f"WA on Testcase {i}"}
+
         if actual_output.strip() != testcase.output.strip():
             return {"verdict": f"WA on Testcase {i}"}
 
