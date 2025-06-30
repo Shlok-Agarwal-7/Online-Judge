@@ -5,6 +5,8 @@ from pathlib import Path
 
 from django.conf import settings
 
+from accounts.models import Profile
+
 from .models import Problem
 
 
@@ -108,9 +110,9 @@ def submit_code(language, code, problem_id):
 
         if re.match(pattern1, actual_output):
             return {"verdict": "Compilation Error"}
-        
-        if re.match(pattern2,actual_ouptut):
-            return {"verdict" : f"WA on Testcase {i}"}
+
+        if re.match(pattern2, actual_output):
+            return {"verdict": f"WA on Testcase {i}"}
 
         if actual_output.strip() != testcase.output.strip():
             return {"verdict": f"WA on Testcase {i}"}
@@ -118,3 +120,21 @@ def submit_code(language, code, problem_id):
         i += 1
 
     return {"verdict": "Accepted"}
+
+
+def update_rank_on_point_increase(user_profile, old_points, new_points):
+    affected_profiles = list(
+        Profile.objects.filter(points__gt=old_points, points__lte=new_points)
+        .exclude(pk=user_profile.pk)
+        .order_by("-points", "user__username")
+    )
+    all_profiles = affected_profiles + [user_profile]
+    all_profiles.sort(key=lambda p: (-p.points, p.user.username))
+
+    min_rank = Profile.objects.filter(points__gt=new_points).count() + 1
+
+    # Assign new ranks
+    for i, profile in enumerate(all_profiles):
+        profile.rank = min_rank + i
+
+    Profile.objects.bulk_update(all_profiles, ["rank"])

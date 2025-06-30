@@ -98,13 +98,14 @@ class ProblemSerializer(serializers.ModelSerializer):
 
 
 class SubmissionSerializer(serializers.ModelSerializer):
+    problem_id = serializers.IntegerField(write_only=True, required=True)
     problem = serializers.SerializerMethodField()
     user = serializers.SerializerMethodField()
 
     class Meta:
         model = Submission
-        fields = ["id", "code", "language", "verdict", "problem", "user"]
-        read_only_fields = ["verdict"]
+        fields = ["id", "code", "language", "verdict", "problem_id", "user","problem"]
+        read_only_fields = ["verdict","problem","user"]
 
     def get_problem(self, obj):
         return obj.problem.title

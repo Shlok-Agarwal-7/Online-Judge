@@ -1,8 +1,9 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .helpers import run_code, submit_code
+from .helpers import run_code, submit_code,update_rank_on_point_increase
 from .models import Problem, Submission, TestCase
 from .permissions import isMentor
 from .serializers import (
@@ -111,11 +112,33 @@ class SubmitCodeView(APIView):
         if serializer.is_valid():
             code = serializer.validated_data["code"]
             language = serializer.validated_data["language"]
-            problem = serializer.validated_data["problem"]
+            problem_id = serializer.validated_data["problem_id"]
             user = request.user
+
+            problem = get_object_or_404(Problem, id=problem_id)
 
             result = submit_code(language, code, problem.id)
             verdict = result.get("verdict")
+
+            if verdict == "Accepted":
+                first_ac = not problem.submissions.filter(
+                    verdict="Accepted", user=request.user
+                ).exists()
+
+                if first_ac:
+                    old_points = user.profile.points
+                    if problem.difficulty == "Hard":
+                        earned = 100
+                    elif problem.difficulty == "Medium":
+                        earned = 50
+                    elif problem.difficulty == "Easy":
+                        earned = 25
+
+                    user.profile.points += earned
+                    user.profile.save()
+                    update_rank_on_point_increase(
+                        user.profile, old_points, user.profile.points
+                    )
 
             submission = Submission.objects.create(
                 code=code,
