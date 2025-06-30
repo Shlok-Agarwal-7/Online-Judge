@@ -72,8 +72,6 @@ class ProblemSerializer(serializers.ModelSerializer):
 
         testcases_data = validated_data.pop("testcases", [])
 
-        print(f"testcases_data {testcases_data}")
-
         try:
             if validated_data.get("title") != " ":
                 instance.title = validated_data.get("title")

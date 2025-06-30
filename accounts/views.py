@@ -22,9 +22,32 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 class ProfilesListAPIView(generics.ListAPIView):
 
-    queryset = Profile.objects.order_by("-points")[:10]
     serializer_class = ProfileSerializer
 
+    def get_queryset(self):
+        end_rank = int(self.request.query_params.get('range',1))
+        start_rank = 1
+
+        return Profile.objects.filter(
+            rank__gte = start_rank,
+            rank__lte = end_rank,
+        ).order_by('rank')
+
+class LocalLeaderboardAPIView(generics.ListAPIView):
+    serializer_class = ProfileSerializer
+    
+    def get_queryset(self):
+        range_value = int(self.request.query_params.get('range',1))
+        user_profile = self.request.user.profile
+        user_rank = user_profile.rank
+
+        start_rank = max(1,user_rank - range_value)
+        end_rank = user_rank + range_value
+
+        return Profile.objects.filter(
+            rank__gte = start_rank,
+            rank__lte = end_rank,
+        ).order_by('rank')
 
 class LoginAPIView(APIView):
 
@@ -118,7 +141,6 @@ class LogoutAPIView(APIView):
         try:
             refresh_token = request.COOKIES.get("refresh_token")
             token = RefreshToken(refresh_token)
-            print(refresh_token)
             token.blacklist()
             res = Response({"detail" : "Successfully loggedd out."})
             res.delete_cookie("refresh_token")

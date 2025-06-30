@@ -6,7 +6,6 @@ class isMentor(permissions.BasePermission):
             return True
 
         else:
-            print(str(request.user.profile))
             return (
                 request.user.is_authenticated
                 and hasattr(request.user,"profile")  
