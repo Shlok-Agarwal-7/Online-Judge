@@ -98,10 +98,20 @@ class ProblemSerializer(serializers.ModelSerializer):
 
 
 class SubmissionSerializer(serializers.ModelSerializer):
+    problem = serializers.SerializerMethodField()
+    user = serializers.SerializerMethodField()
+
     class Meta:
         model = Submission
-        fields = ["id", "code", "language", "verdict", "problem"]
+        fields = ["id", "code", "language", "verdict", "problem", "user"]
         read_only_fields = ["verdict"]
+
+    def get_problem(self, obj):
+        return obj.problem.title
+
+    def get_user(self, obj):
+        return obj.user.username
+
 
 class RunCodeSerializer(serializers.Serializer):
     code = serializers.CharField()
