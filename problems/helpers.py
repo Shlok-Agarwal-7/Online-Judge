@@ -1,6 +1,8 @@
 import re
+import resource
 import subprocess
 import uuid
+import signal
 from pathlib import Path
 
 from django.conf import settings
@@ -10,7 +12,19 @@ from accounts.models import Profile
 from .models import Problem
 
 
+def set_memory_limit(max_mem_mb):
+    # Convert MB to bytes
+    max_mem_bytes = max_mem_mb * 1024 * 1024
+
+    def set_limits():
+        # Set max address space (virtual memory)
+        resource.setrlimit(resource.RLIMIT_AS, (max_mem_bytes, max_mem_bytes))
+
+    return set_limits
+
+
 def run_code(language, code, input_data, u_ID=None):
+
     project_dir = Path(settings.BASE_DIR)
     directories = ["code", "input", "output", "compiled"]
 
@@ -45,6 +59,8 @@ def run_code(language, code, input_data, u_ID=None):
     with open(output_file_path, "w") as output_file:
         pass
 
+    memory_limit_fn = set_memory_limit(100)
+
     try:
         run_cmd = []
         if language == "cpp":
@@ -73,23 +89,37 @@ def run_code(language, code, input_data, u_ID=None):
 
         with open(input_file_path, "r") as input_file:
             with open(output_file_path, "w") as output_file:
-                subprocess.run(
+                result = subprocess.run(
                     run_cmd,
                     stdin=input_file,
                     stdout=output_file,
                     stderr=output_file,
+                    preexec_fn=memory_limit_fn,
                     timeout=3,
                 )
+
+        if result.returncode < 0:
+            signal_killed = -result.returncode
+            if signal_killed == signal.SIGKILL:
+                output_file_path.write_text("Memory Limit Exceeded")
+            elif signal_killed == signal.SIGSEGV:
+                output_file_path.write_text("Segmentation Fault")
+            else:
+                output_file_path.write_text(f"Terminated by signal {signal_killed}")
+        elif result.returncode != 0:
+            output_file_path.write_text("RunTime Error occurred")
+
     except subprocess.TimeoutExpired:
         output_file_path.write_text("Time Limit Exceeded")
 
     except Exception as e:
         output_file_path.write_text("RunTime Error : \n" + str(e))
-
+    
     with open(output_file_path, "r") as output_file:
         output_data = output_file.read()
 
     return output_data
+
 
 
 def submit_code(language, code, problem_id):
