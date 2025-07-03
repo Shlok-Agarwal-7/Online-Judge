@@ -5,6 +5,8 @@ from rest_framework.views import APIView
 
 from .helpers import run_code, submit_code,update_rank_on_point_increase
 from .models import Problem, Submission, TestCase
+from django.contrib.auth.models import User
+from rest_framework.exceptions import NotFound
 from .permissions import isMentor
 from .serializers import (
     ProblemDetailSerializer,
@@ -155,7 +157,7 @@ class SubmitCodeView(APIView):
         return Response(serializer.errors, status=400)
 
 
-class GetUserSubmissions(generics.ListAPIView):
+class GetUserForProblemSubmissions(generics.ListAPIView):
     serializer_class = SubmissionSerializer
 
     def get_queryset(self):
@@ -175,3 +177,16 @@ class GetAllSubmissions(generics.ListAPIView):
             return Submission, objects.none()
 
         return Submission.objects.filter(problem=problem_id)
+
+
+class MySubmissions(generics.ListAPIView):
+    serializer_class = SubmissionSerializer
+
+    def get_queryset(self):
+        username = self.kwargs.get("username")
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            raise NotFound("User not found")
+
+        return Submission.objects.filter(user=user).order_by("-id")

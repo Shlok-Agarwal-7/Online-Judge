@@ -9,10 +9,9 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ["username","points"]
+        fields = ["username","points","rank"]
 
 # ! Serializer to Login the user 
-
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()

@@ -1,12 +1,13 @@
 from django.urls import path
 
 from .views import (
+    LocalLeaderboardAPIView,
     LoginAPIView,
     LogoutAPIView,
+    ProfileDetailAPIView,
     ProfilesListAPIView,
     RefreshTokenAPIView,
     RegisterAPIView,
-    LocalLeaderboardAPIView
 )
 
 urlpatterns = [
@@ -16,4 +17,5 @@ urlpatterns = [
     path("api/top-users/", ProfilesListAPIView.as_view(), name="top_user_api"),
     path("api/local-users/", LocalLeaderboardAPIView.as_view(), name="local_user_api"),
     path("api/refresh-access", RefreshTokenAPIView.as_view(), name="refresh_token_api"),
+    path("<str:username>", ProfileDetailAPIView.as_view(), name="profile_detail_api"),
 ]

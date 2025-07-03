@@ -11,8 +11,9 @@ urlpatterns = [
     path("problems/<int:pk>/update", views.ProblemUpdateView.as_view()),
     path("execute", views.RunCodeView.as_view()),
     path("submit", views.SubmitCodeView.as_view()),
-    path("getusersubmissions/",views.GetUserSubmissions.as_view()),
+    path("getusersubmissions/",views.GetUserForProblemSubmissions.as_view()),
     path("getallsubmissions/",views.GetAllSubmissions.as_view()),
+    path("mysubmissions/<str:username>",views.MySubmissions.as_view())
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
