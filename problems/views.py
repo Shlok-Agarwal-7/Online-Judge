@@ -1,17 +1,19 @@
+from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .helpers import run_code, submit_code,update_rank_on_point_increase
-from .models import Problem, Submission, TestCase
-from django.contrib.auth.models import User
-from rest_framework.exceptions import NotFound
+from .helpers import get_ai_hint, run_code, submit_code, update_rank_on_point_increase
+from .models import Problem, ProblemTag, Submission, TestCase
 from .permissions import isMentor
 from .serializers import (
+    HintRequestSerializer,
     ProblemDetailSerializer,
     ProblemListSerializer,
     ProblemSerializer,
+    ProblemTagSerializer,
     RunCodeSerializer,
     SubmissionSerializer,
 )
@@ -32,6 +34,25 @@ class ProblemDetialView(generics.RetrieveAPIView):
 
     queryset = Problem.objects.all()
     serializer_class = ProblemDetailSerializer
+
+
+class ProblemTagListAPIView(generics.ListAPIView):
+    queryset = ProblemTag.objects.all()
+    serializer_class = ProblemTagSerializer
+
+
+class ProblemHintAPIView(APIView):
+
+    def post(self, request):
+        serializer = HintRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        title = serializer.validated_data["title"]
+        question = serializer.validated_data["question"]
+
+        hint = get_ai_hint(title, question)
+        return Response({"problem": title, "hint": hint})
 
 
 class ProblemCreateView(APIView):
@@ -79,7 +100,9 @@ class ProblemUpdateView(generics.UpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(data=request.data, instance=instance)
+        serializer = self.get_serializer(
+            data=request.data, instance=instance, partial=True
+        )
 
         if serializer.is_valid():
             data = serializer.save()

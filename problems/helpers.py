@@ -115,19 +115,21 @@
 
 #     return output_data
 
+import os
 import re
 import subprocess
 import uuid
 from pathlib import Path
 
 from django.conf import settings
+from google import genai
 
 from accounts.models import Profile
 
 from .models import Problem
 
 
-def run_code(langauge, code, input_data,u_ID = None):
+def run_code(langauge, code, input_data, u_ID=None):
     project_dir = Path(settings.BASE_DIR)
     directories = ["code", "input", "output", "compiled"]
 
@@ -142,7 +144,7 @@ def run_code(langauge, code, input_data,u_ID = None):
     output_dir = project_dir / "output"
     compiled_dir = project_dir / "compiled"
 
-    if(u_ID == None):
+    if u_ID == None:
         u_ID = str(uuid.uuid4())
 
     code_file = f"{u_ID}.{langauge}"
@@ -253,3 +255,24 @@ def update_rank_on_point_increase(user_profile, old_points, new_points):
         profile.rank = min_rank + i
 
     Profile.objects.bulk_update(all_profiles, ["rank"])
+
+
+def get_ai_hint(title, question):
+
+    client = genai.Client()
+
+    prompt = f"""
+            You are a helpful competitive programming assistant.
+
+            The user is solving this problem:
+            Title: {title}
+            Description: {question}
+
+            Give the user a **helpful hint** or idea (without giving away the full code or direct solution).
+            Only give 1-2 short hints.
+            Avoid spoilers. Just give nudges or ideas.
+            """
+
+    response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+
+    return response.text.strip()

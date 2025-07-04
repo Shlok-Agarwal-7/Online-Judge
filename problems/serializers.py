@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Problem, Submission, TestCase
+from .models import Problem, ProblemTag, Submission, TestCase
 
 
 # used for sending and receving data of testcase
@@ -12,9 +12,18 @@ class TestCaseSerializer(serializers.ModelSerializer):
         fields = ("id", "input", "output")
 
 
+class ProblemTagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProblemTag
+        fields = ["id", "name"]
+
+class HintRequestSerializer(serializers.Serializer):
+    title = serializers.CharField()
+    question = serializers.CharField()
+
 # used for individual problem page
 class ProblemDetailSerializer(serializers.ModelSerializer):
-    testcases = TestCaseSerializer(many=True, read_only=True)
+    tags = serializers.SlugRelatedField(many=True, read_only=True, slug_field="name")
 
     class Meta:
         model = Problem
@@ -24,8 +33,10 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
             "created_by",
             "created_at",
             "question",
-            "testcases",
+            "sample_input",
+            "sample_output",
             "difficulty",
+            "tags",
         )
 
 
@@ -33,24 +44,38 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
 class ProblemListSerializer(serializers.ModelSerializer):
     created_by = serializers.SerializerMethodField()
 
+    tags = serializers.SlugRelatedField(many=True, read_only=True, slug_field="name")
+
     class Meta:
         model = Problem
-        fields = ("id", "title", "created_by", "created_at", "difficulty")
+        fields = ("id", "title", "created_by", "created_at", "difficulty", "tags")
 
     def get_created_by(self, obj):
         return obj.created_by.username
 
 
 class ProblemSerializer(serializers.ModelSerializer):
-    testcases = TestCaseSerializer(many=True)
+    testcases = TestCaseSerializer(many=True, required=False)
+    tags = serializers.SlugRelatedField(
+        many=True, slug_field="name", queryset=ProblemTag.objects.all()
+    )
 
     class Meta:
         model = Problem
-        fields = ("title", "question", "testcases", "difficulty")
+        fields = (
+            "title",
+            "question",
+            "testcases",
+            "difficulty",
+            "tags",
+            "sample_input",
+            "sample_output",
+        )
 
     def create(self, validated_data):
 
         testcases_data = validated_data.pop("testcases", [])
+        tags_data = validated_data.pop("tags", None)
 
         user = None
 
@@ -61,6 +86,7 @@ class ProblemSerializer(serializers.ModelSerializer):
         try:
             problem = Problem.objects.create(created_by=user, **validated_data)
 
+            problem.tags.set(tags_data)
             for testcase in testcases_data:
                 TestCase.objects.create(problem=problem, **testcase)
 
@@ -69,8 +95,8 @@ class ProblemSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f"An Error occured {e}")
 
     def update(self, instance, validated_data):
-
         testcases_data = validated_data.pop("testcases", [])
+        tags_data = validated_data.pop("tags", None)
 
         try:
             if validated_data.get("title") != " ":
@@ -84,10 +110,16 @@ class ProblemSerializer(serializers.ModelSerializer):
 
             instance.save()
 
-            TestCase.objects.filter(problem=instance).delete()
+            if tags_data is not None:
+                instance.tags.set(tags_data)
 
-            for testcase_data in testcases_data:
-                testcase = TestCase.objects.create(problem=instance, **testcase_data)
+            if testcases_data:
+                TestCase.objects.filter(problem=instance).delete()
+
+                for testcase_data in testcases_data:
+                    testcase = TestCase.objects.create(
+                        problem=instance, **testcase_data
+                    )
 
             return {"detail": f"updated the fields and testcases for {instance.id}"}
 
@@ -102,8 +134,8 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Submission
-        fields = ["id", "code", "language", "verdict", "problem_id", "user","problem"]
-        read_only_fields = ["verdict","problem","user"]
+        fields = ["id", "code", "language", "verdict", "problem_id", "user", "problem"]
+        read_only_fields = ["verdict", "problem", "user"]
 
     def get_problem(self, obj):
         return obj.problem.title
