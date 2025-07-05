@@ -1,5 +1,9 @@
+import time
+
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from rest_framework import generics
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
@@ -28,6 +32,15 @@ class ProblemListView(generics.ListAPIView):
 
     queryset = Problem.objects.all()
     serializer_class = ProblemListSerializer
+
+    @method_decorator(cache_page(60 * 60 * 2, key_prefix="ProblemsList"))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    def get_queryset(self):
+        # Simulate delay (e.g., 2 seconds)
+        time.sleep(2)
+        return super().get_queryset()
 
 
 class ProblemDetialView(generics.RetrieveAPIView):
