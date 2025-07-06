@@ -15,7 +15,9 @@ urlpatterns = [
     path("getallsubmissions/", views.GetAllSubmissions.as_view()),
     path("mysubmissions/<str:username>", views.MySubmissions.as_view()),
     path("tags/", views.ProblemTagListAPIView.as_view()),
-    path("get-hint/",views.ProblemHintAPIView.as_view())
+    path("get-hint/",views.ProblemHintAPIView.as_view()),
+    path("check-run-status/<str:task_id>",views.CheckRunStatus.as_view()),
+    path("check-submit-status/<str:submission_id>",views.CheckSubmitStatus.as_view())
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

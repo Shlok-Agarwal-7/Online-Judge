@@ -7,6 +7,7 @@ from django.conf import settings
 from google import genai
 
 from accounts.models import Profile
+from django.contrib.auth.models import User
 
 from .models import Problem
 
@@ -146,6 +147,33 @@ def update_rank_on_point_increase(user_profile, old_points, new_points):
         profile.rank = min_rank + i
 
     Profile.objects.bulk_update(all_profiles, ["rank"])
+
+
+def update_user_score_if_first_ac(user_id, problem_id):
+    try:
+        user = User.objects.get(id=user_id)
+        problem = Problem.objects.get(id=problem_id)
+        already_accepted = (
+            problem.submissions.filter(verdict="Accepted", user=user)
+            .exclude(verdict="Pending")
+            .exists()
+        )
+
+        if already_accepted:
+            return  # not first AC
+
+        points = {"Easy": 25, "Medium": 50, "Hard": 100}
+        earned = points.get(problem.difficulty, 0)
+        profile = user.profile
+
+        old_points = profile.points
+        profile.points += earned
+        profile.save()
+
+        update_rank_on_point_increase(profile, old_points, profile.points)
+
+    except (User.DoesNotExist,Problem.DoesNotExist):
+        print("error in update scores")
 
 
 def get_ai_hint(title, question):

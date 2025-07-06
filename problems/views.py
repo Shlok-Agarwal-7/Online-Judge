@@ -1,5 +1,5 @@
 import time
-
+from celery.result import AsyncResult
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
@@ -9,7 +9,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .helpers import get_ai_hint, run_code, submit_code, update_rank_on_point_increase
+from .helpers import get_ai_hint, update_rank_on_point_increase
 from .models import Problem, ProblemTag, Submission, TestCase
 from .permissions import isMentor
 from .serializers import (
@@ -21,6 +21,7 @@ from .serializers import (
     RunCodeSerializer,
     SubmissionSerializer,
 )
+from .tasks import run_code_task, submit_code_task
 
 # Create your views here.
 
@@ -133,12 +134,8 @@ class RunCodeView(APIView):
             language = serializer.validated_data["language"]
             input_data = serializer.validated_data["input_data"]
 
-            out = run_code(language, code, input_data)
-
-            # if err: return Response({"error": str(err)}, status=400)
-
-            return Response({"output": str(out)}, status=200)
-
+            task = run_code_task.delay(language, code, input_data)
+            return Response({"task_id": task.id})
         else:
             return Response(serializer.errors, status=400)
 
@@ -155,42 +152,35 @@ class SubmitCodeView(APIView):
 
             problem = get_object_or_404(Problem, id=problem_id)
 
-            result = submit_code(language, code, problem.id)
-            verdict = result.get("verdict")
-
-            if verdict == "Accepted":
-                first_ac = not problem.submissions.filter(
-                    verdict="Accepted", user=request.user
-                ).exists()
-
-                if first_ac:
-                    old_points = user.profile.points
-                    if problem.difficulty == "Hard":
-                        earned = 100
-                    elif problem.difficulty == "Medium":
-                        earned = 50
-                    elif problem.difficulty == "Easy":
-                        earned = 25
-
-                    user.profile.points += earned
-                    user.profile.save()
-                    update_rank_on_point_increase(
-                        user.profile, old_points, user.profile.points
-                    )
-
             submission = Submission.objects.create(
                 code=code,
                 language=language,
-                verdict=verdict,
                 problem=problem,
+                verdict="pending",
                 user=user,
             )
 
-            response_serializer = SubmissionSerializer(submission)
-
-            return Response(response_serializer.data, status=201)
+            result = submit_code_task.delay(language, code, problem.id, submission.id)
+            
+            return Response({"submission_id" : submission.id})
 
         return Response(serializer.errors, status=400)
+
+class CheckRunStatus(APIView):
+
+    def get(self,request,task_id):
+        result = AsyncResult(task_id)
+        if result.ready():
+                return Response({"status": result.status, "output": result.result})
+        return Response({"status": result.status})
+
+
+class CheckSubmitStatus(APIView):
+
+    def get(self,request,submission_id):
+        submission = Submission.objects.get(id=submission_id, user = self.request.user)
+        return Response({"verdict": submission.verdict})
+
 
 
 class GetUserForProblemSubmissions(generics.ListAPIView):
