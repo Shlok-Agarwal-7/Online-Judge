@@ -200,7 +200,7 @@ class GetAllSubmissions(generics.ListAPIView):
     def get_queryset(self):
         problem_id = self.request.query_params.get("problem")
         if not problem_id:
-            return Submission, objects.none()
+            return Submission.objects.none()
 
         return Submission.objects.filter(problem=problem_id)
 
