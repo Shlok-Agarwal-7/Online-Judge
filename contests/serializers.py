@@ -18,7 +18,7 @@ class ContestSerializer(serializers.ModelSerializer):
         return obj.created_by.username
     
     def create(self,validated_data):
-        validated_data["created_by"] = self.context['request'].user
+        validated_data["created_by"] = self.context['request'].user 
         return super().create(validated_data)
 
 class ContestProblemSerializer(serializers.ModelSerializer):
@@ -30,11 +30,12 @@ class ContestProblemSerializer(serializers.ModelSerializer):
     
 
 class ContestSubmissionSerializer(serializers.ModelSerializer):
-    submission = SubmissionSerializer()
+    submission = SubmissionSerializer(read_only = True)
 
     class Meta:
         model = ContestSubmission
         fields = ("submission", "submission_time")
+    
 
 class AddExistingProblemSerializer(serializers.ModelSerializer):
     problem_id = serializers.IntegerField(write_only=True)

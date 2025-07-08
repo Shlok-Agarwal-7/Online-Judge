@@ -25,9 +25,9 @@ class Problem(models.Model):
             ("Hard", "Hard"),
         ],
     )
-    tags = models.ManyToManyField(ProblemTag, related_name="problems",blank = True)
-    sample_input = models.CharField(max_length = 100)
-    sample_output = models.CharField(max_length = 100)
+    tags = models.ManyToManyField(ProblemTag, related_name="problems", blank=True)
+    sample_input = models.CharField(max_length=100)
+    sample_output = models.CharField(max_length=100)
 
     def __str__(self):
         return f"{self.title} - {self.id}"
@@ -57,4 +57,4 @@ class Submission(models.Model):
     )
 
     def __str__(self):
-        return f"{self.problem.title} - {self.user.username}"
+        return f"{self.id}"

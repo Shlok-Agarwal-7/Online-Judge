@@ -8,7 +8,8 @@ from .views import (
     UpcomingContestListView,
     ContestDetialView,
     ContestCreateView,
-    AddExistingProblemView
+    AddExistingProblemView,
+    ContestMakeSubmissionView
 )
 
 urlpatterns = [
@@ -18,5 +19,6 @@ urlpatterns = [
     path("contests/<int:contest_id>/problems",ContestProblemListView.as_view(),name="contest_problems"),
     path("contests/<int:pk>",ContestDetialView.as_view(),name = "contest-details"),
     path("contests/create",ContestCreateView.as_view(),name = "create-contest"),
-    path("contests/<int:contest_id>/addproblem",AddExistingProblemView.as_view(),name = "add-problem-contest")
+    path("contests/<int:contest_id>/addproblem",AddExistingProblemView.as_view(),name = "add-problem-contest"),
+    path("contests/<int:contest_id>/submit",ContestMakeSubmissionView.as_view(),name = "make_contest_submission")
 ]

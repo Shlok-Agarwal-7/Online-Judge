@@ -1,6 +1,12 @@
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from problems.helpers import submit_code, update_user_score_if_first_ac
+from problems.models import Problem, Submission
+from problems.serializers import SubmissionSerializer
 
 from .models import Contest, ContestProblem, ContestSubmission
 from .serializers import (
@@ -94,3 +100,84 @@ class AddExistingProblemView(generics.CreateAPIView):
         contest = get_object_or_404(Contest, id=self.kwargs["contest_id"])
         context["contest"] = contest
         return context
+
+
+# class ContestMakeSubmissionView(APIView):
+#     def post(self, request,*args, **kwargs):
+#         serializer = ContestSubmissionSerializer(data = request.data)
+#         if serializer.is_valid():
+#             code = serializer.validated_data["code"]
+#             language = serializer.validated_data["language"]
+#             problem_id = serializer.validated_data["problem_id"]
+#             user = request.user
+
+#             contest = get_object_or_404(Contest, id=self.kwargs.get["contest_id"])
+
+#             if not contest.is_running:
+#                 return Response({"detail": "Contest has ended"}, status=403)
+
+#             problem = Problem.objects.get(id=problem_id)
+
+#             result = submit_code(language, code, problem_id)
+
+#             verdict = result.get("verdict")
+
+#             submission = Submission.objects.create(
+#                 code=code,
+#                 language=language,
+#                 verdict=verdict,
+#                 problem=problem,
+#                 user=user,
+#             )
+
+#             contest_submission = ContestSubmission.objects.create(
+#                 submission=submission,
+#                 submission_time=timezone.now(),
+#             )
+
+#             update_user_score_if_first_ac(user.id, problem_id)
+
+
+#             return Response(serializer.data, status=201)
+#         else:
+#             return Response(serializer.errors, status=400)
+class ContestMakeSubmissionView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = SubmissionSerializer(data=request.data)
+        if serializer.is_valid():
+            code = serializer.validated_data["code"]
+            language = serializer.validated_data["language"]
+            problem_id = serializer.validated_data["problem_id"]
+            user = request.user
+
+            contest = get_object_or_404(Contest, id=self.kwargs.get("contest_id"))
+
+            if not contest.is_running:
+                return Response(
+                    {
+                        "detail": "Contest has ended",
+                    },
+                    status=403,
+                )
+
+            problem = get_object_or_404(Problem, id=problem_id)
+
+            result = submit_code(language, code, problem_id)
+            verdict = result.get("verdict")
+
+            submission = Submission.objects.create(
+                code=code,
+                language=language,
+                verdict=verdict,
+                problem=problem,
+                user=user,
+            )
+
+            contest_submission = ContestSubmission.objects.create(
+                submission=submission, submission_time=timezone.now(), contest=contest
+            )
+
+            response_serializer = ContestSubmissionSerializer(contest_submission)
+            return Response(response_serializer.data, status=201)
+
+        return Response(serializer.errors, status=400)

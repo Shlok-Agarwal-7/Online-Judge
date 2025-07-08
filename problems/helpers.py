@@ -1,15 +1,24 @@
 import re
+import resource
 import subprocess
 import uuid
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from google import genai
 
 from accounts.models import Profile
-from django.contrib.auth.models import User
 
 from .models import Problem
+
+MEMORY_LIMIT_MB = 64
+
+
+def set_limits():
+    memory_bytes = MEMORY_LIMIT_MB * 1024 * 1024
+    resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+    resource.setrlimit(resource.RLIMIT_DATA, (memory_bytes, memory_bytes))
 
 
 def run_code(langauge, code, input_data, u_ID=None):
@@ -47,6 +56,7 @@ def run_code(langauge, code, input_data, u_ID=None):
     with open(output_file_path, "w") as output_file:
         pass
 
+    exec_path = None
     try:
         run_cmd = []
         if langauge == "cpp":
@@ -57,8 +67,8 @@ def run_code(langauge, code, input_data, u_ID=None):
             )
 
             if compile_result.returncode != 0:
-                output_path.write("Compilation Error : \n" + compile_result.stderr)
-                return output_path.read_text()
+                output_file_path.write("Compilation Error : \n" + compile_result.stderr)
+                return output_file_path.read_text()
 
             run_cmd = [str(exec_path)]
 
@@ -73,13 +83,18 @@ def run_code(langauge, code, input_data, u_ID=None):
 
         with open(input_file_path, "r") as input_file:
             with open(output_file_path, "w") as output_file:
-                subprocess.run(
+                result = subprocess.run(
                     run_cmd,
                     stdin=input_file,
                     stdout=output_file,
                     stderr=output_file,
+                    preexec_fn=set_limits,
                     timeout=3,
                 )
+        if result.returncode != 0:
+            if result.returncode == -9 or result.returncode == 137:
+                output_file_path.write_text("Memory Limit Exceeded")
+
     except subprocess.TimeoutExpired:
         output_file_path.write_text("Time Limit Exceeded")
 
@@ -89,12 +104,17 @@ def run_code(langauge, code, input_data, u_ID=None):
     finally:
         with open(output_file_path, "r") as output_file:
             output_data = output_file.read()
-        for path in [code_file_path, input_file_path, output_file_path, exec_path]:
+        for path in [code_file_path, input_file_path, output_file_path]:
             try:
-                if path.exists():
+                if path and path.exists():
                     path.unlink()
             except Exception as cleanup_err:
                 print(f"Error cleaning up {path}: {cleanup_err}")
+        try:
+            if exec_path != None:
+                exec_path.unlink()
+        except Exception as cleanup_err:
+            print(f"Error cleaning up  : {cleanup_err}")
 
     return output_data
 
@@ -104,8 +124,6 @@ def submit_code(language, code, problem_id):
     u_ID = str(uuid.uuid4())
 
     testcases = Problem.objects.get(id=problem_id).testcases.all()
-
-    print(testcases)
 
     pattern1 = r"^(Compilation Error) :"
     pattern2 = r"^(RunTime Error) :"
@@ -172,13 +190,22 @@ def update_user_score_if_first_ac(user_id, problem_id):
 
         update_rank_on_point_increase(profile, old_points, profile.points)
 
-    except (User.DoesNotExist,Problem.DoesNotExist):
+    except (User.DoesNotExist, Problem.DoesNotExist):
         print("error in update scores")
+
+
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 
 def get_ai_hint(title, question):
 
-    client = genai.Client()
+    client = genai.Client(api_key=SECRET_KEY)
 
     prompt = f"""
             You are a helpful competitive programming assistant.
