@@ -36,7 +36,10 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
             "sample_input",
             "sample_output",
             "difficulty",
+            "time_limit",
+            "memory_limit",
             "tags",
+            "blacklist"
         )
 
 
@@ -52,7 +55,6 @@ class ProblemListSerializer(serializers.ModelSerializer):
 
     def get_created_by(self, obj):
         return obj.created_by.username
-
 
 class ProblemSerializer(serializers.ModelSerializer):
     testcases = TestCaseSerializer(many=True, required=False)
@@ -70,6 +72,9 @@ class ProblemSerializer(serializers.ModelSerializer):
             "tags",
             "sample_input",
             "sample_output",
+            "time_limit",
+            "memory_limit",
+            "blacklist"
         )
 
     def create(self, validated_data):
@@ -99,14 +104,18 @@ class ProblemSerializer(serializers.ModelSerializer):
         tags_data = validated_data.pop("tags", None)
 
         try:
-            if validated_data.get("title") != " ":
-                instance.title = validated_data.get("title")
-
-            if validated_data.get("question") != " ":
-                instance.question = validated_data.get("question")
-
-            if validated_data.get("difficulty") != " ":
-                instance.difficulty = validated_data.get("difficulty")
+            for attr in [
+                "title",
+                "question",
+                "difficulty",
+                "sample_input",
+                "sample_output",
+                "blacklist",
+                "memory_limit",
+                "time_limit",
+            ]:
+                if attr in validated_data:
+                    setattr(instance, attr, validated_data[attr])
 
             instance.save()
 

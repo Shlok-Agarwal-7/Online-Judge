@@ -28,6 +28,9 @@ class Problem(models.Model):
     tags = models.ManyToManyField(ProblemTag, related_name="problems", blank=True)
     sample_input = models.CharField(max_length=100)
     sample_output = models.CharField(max_length=100)
+    time_limit = models.IntegerField(default = 1)
+    memory_limit = models.IntegerField(default= 64)
+    blacklist = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.title} - {self.id}"

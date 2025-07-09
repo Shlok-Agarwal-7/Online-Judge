@@ -4,7 +4,8 @@ from rest_framework.urlpatterns import format_suffix_patterns
 from problems import views
 
 urlpatterns = [
-    path("problems/", views.ProblemListView.as_view()),
+    path("problems/whitelist", views.ProblemWhiteListView.as_view()),
+    path("problems/blacklist",views.ProblemBlackListView.as_view()),
     path("problems/<int:pk>/", views.ProblemDetialView.as_view()),
     path("problems/create", views.ProblemCreateView.as_view()),
     path("problems/<int:pk>/delete", views.ProblemDeleteView.as_view()),

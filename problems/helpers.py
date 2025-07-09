@@ -1,5 +1,4 @@
 import re
-import resource
 import subprocess
 import uuid
 from pathlib import Path
@@ -16,9 +15,13 @@ MEMORY_LIMIT_MB = 64
 
 
 def set_limits():
-    memory_bytes = MEMORY_LIMIT_MB * 1024 * 1024
-    resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
-    resource.setrlimit(resource.RLIMIT_DATA, (memory_bytes, memory_bytes))
+    try:
+        import resource
+        memory_bytes = MEMORY_LIMIT_MB * 1024 * 1024
+        resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+        resource.setrlimit(resource.RLIMIT_DATA, (memory_bytes, memory_bytes))
+    except ImportError:
+        pass
 
 
 def run_code(langauge, code, input_data, u_ID=None):

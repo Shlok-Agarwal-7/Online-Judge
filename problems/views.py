@@ -27,12 +27,12 @@ from .tasks import run_code_task, submit_code_task
 # Create your views here.
 
 
-class ProblemListView(generics.ListAPIView):
+class ProblemWhiteListView(generics.ListAPIView):
 
     authentication_classes = []
     permission_classes = []
 
-    queryset = Problem.objects.all()
+    queryset = Problem.objects.filter(blacklist = False)
     serializer_class = ProblemListSerializer
 
     # @method_decorator(cache_page(60 * 60 * 2, key_prefix="ProblemsList"))
@@ -43,6 +43,12 @@ class ProblemListView(generics.ListAPIView):
     # #     # Simulate delay (e.g., 2 seconds)
     # #     time.sleep(2)
     # #     return super().get_queryset()
+
+class ProblemBlackListView(generics.ListAPIView):
+    permission_classes = [isMentor]
+
+    queryset = Problem.objects.filter(blacklist = True)
+    serializer_class = ProblemListSerializer
 
 
 class ProblemDetialView(generics.RetrieveAPIView):

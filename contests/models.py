@@ -38,7 +38,7 @@ class ContestProblem(models.Model):
     order = models.IntegerField(default=0)
 
     def __str__(self):
-        return self.problem.title
+        return f"{self.contest.title} - {self.order}"
 
 
 class ContestSubmission(models.Model):
