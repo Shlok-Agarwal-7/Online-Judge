@@ -33,6 +33,8 @@ JsonSir==0.0.2
 kombu==5.5.4
 packaging==25.0
 prompt_toolkit==3.0.51
+psycopg==3.2.9
+psycopg-binary==3.2.9
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
 pydantic==2.11.7
