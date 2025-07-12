@@ -129,6 +129,11 @@ class ContestMakeSubmissionView(APIView):
             result = submit_code(language, code, problem_id)
             verdict = result.get("verdict")
 
+            print("The verdcit was", verdict)
+
+            if verdict == "Accepted":
+                update_user_score_if_first_ac(user.id, problem.id)
+
             submission = Submission.objects.create(
                 code=code,
                 language=language,
@@ -141,16 +146,13 @@ class ContestMakeSubmissionView(APIView):
                 submission=submission, submission_time=timezone.now(), contest=contest
             )
 
-            if verdict == "Accepted":
-                update_user_score_if_first_ac(user.id, problem.id)
-
-            response_serializer = ContestSubmissionSerializer(contest_submission)
+            response_serializer = SubmissionSerializer(submission)
             return Response(response_serializer.data, status=201)
 
         return Response(serializer.errors, status=400)
 
-class getContestLeaderboardView(APIView):
-    def get(self,request,*args, **kwargs):
-        contest_id = self.kwargs.get("contest_id")
-        contest = get_object_or_404(Contest,id = contest_id)
 
+class getContestLeaderboardView(APIView):
+    def get(self, request, *args, **kwargs):
+        contest_id = self.kwargs.get("contest_id")
+        contest = get_object_or_404(Contest, id=contest_id)

@@ -91,7 +91,7 @@ def run_code(langauge, code, input_data, u_ID=None):
                     stdin=input_file,
                     stdout=output_file,
                     stderr=output_file,
-                    preexec_fn=set_limits,
+                    # preexec_fn=set_limits,
                     timeout=3,
                 )
         if result.returncode != 0:
@@ -172,13 +172,15 @@ def update_rank_on_point_increase(user_profile, old_points, new_points):
 
 def update_user_score_if_first_ac(user_id, problem_id):
     try:
+
         user = User.objects.get(id=user_id)
         problem = Problem.objects.get(id=problem_id)
         already_accepted = (
             problem.submissions.filter(verdict="Accepted", user=user)
-            .exclude(verdict="Pending")
-            .exists()
+            .exclude(verdict="Pending").exists()
         )
+
+
 
         if already_accepted:
             return  # not first AC
@@ -190,6 +192,7 @@ def update_user_score_if_first_ac(user_id, problem_id):
         old_points = profile.points
         profile.points += earned
         profile.save()
+
 
         update_rank_on_point_increase(profile, old_points, profile.points)
 
