@@ -41,9 +41,9 @@ class LoginSerializer(serializers.Serializer):
                     }
                 }
             else:
-                raise serializers.ValidationError("Invalid Password Please Recheck Password")
+                raise serializers.ValidationError({"detail" : "Invalid Password Please Recheck Password"})
         else:
-            raise serializers.ValidationError("User not found")
+            raise serializers.ValidationError({"detail" : "User not found"})
 
 
 

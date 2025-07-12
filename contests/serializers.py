@@ -17,9 +17,21 @@ class ContestSerializer(serializers.ModelSerializer):
     def get_created_by(self, obj):
         return obj.created_by.username
     
+    def validate(self, attrs):
+        title = attrs.get("title")    
+
+        if Contest.objects.filter(title = title).exists():
+            raise serializers.ValidationError({"detail" : "Contest with the same name already exists"})
+
+        if attrs["start_time"] >= attrs["end_time"]:
+            raise serializers.ValidationError({"detail" : "End time must be after start time."})
+ 
+        return attrs
+
     def create(self,validated_data):
         validated_data["created_by"] = self.context['request'].user 
         return super().create(validated_data)
+
 
 class ContestProblemSerializer(serializers.ModelSerializer):
     problem = ProblemListSerializer()
@@ -46,7 +58,7 @@ class AddExistingProblemSerializer(serializers.ModelSerializer):
 
     def validate_problem_id(self, value):
         if ContestProblem.objects.filter(problem_id=value).exists():
-            raise serializers.ValidationError("This problem is already added to another contest.")
+            raise serializers.ValidationError({"detail" : "This problem is already added to another contest"})
         return value
 
     def create(self, validated_data):

@@ -76,6 +76,14 @@ class ProblemSerializer(serializers.ModelSerializer):
             "memory_limit",
             "blacklist"
         )
+    
+    def validate(self, attrs):
+        title = attrs.get("title")
+
+        if self.instance == None and Problem.objects.filter(title = title).exists():
+            raise serializers.ValidationError({"detail" : "Similar problem with same title already exists"})
+
+        return attrs
 
     def create(self, validated_data):
 
