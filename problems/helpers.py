@@ -11,10 +11,9 @@ from accounts.models import Profile
 
 from .models import Problem
 
-MEMORY_LIMIT_MB = 64
 
 
-def set_limits():
+def set_limits(MEMORY_LIMIT_MB = 512):
     try:
         import resource
         memory_bytes = MEMORY_LIMIT_MB * 1024 * 1024
@@ -24,7 +23,7 @@ def set_limits():
         pass
 
 
-def run_code(langauge, code, input_data, u_ID=None):
+def run_code(langauge, code, input_data, u_ID=None,memory_limit = 512,time_limit = 3):
     project_dir = Path(settings.BASE_DIR)
     directories = ["code", "input", "output", "compiled"]
 
@@ -91,8 +90,8 @@ def run_code(langauge, code, input_data, u_ID=None):
                     stdin=input_file,
                     stdout=output_file,
                     stderr=output_file,
-                    preexec_fn=set_limits,
-                    timeout=3,
+                    preexec_fn=set_limits(memory_limit),
+                    timeout=time_limit,
                 )
         if result.returncode != 0:
             if result.returncode == -9 or result.returncode == 137:
@@ -127,13 +126,15 @@ def submit_code(language, code, problem_id):
     u_ID = str(uuid.uuid4())
 
     testcases = Problem.objects.get(id=problem_id).testcases.all()
+    time_limit = Problem.objects.get(id = problem_id).time_limit
+    memory_limit = Problem.objects.get(id = problem_id).memory_limit
 
     pattern1 = r"^(Compilation Error) :"
     pattern2 = r"^(RunTime Error) :"
     i = 1
 
     for testcase in testcases:
-        actual_output = run_code(language, code, testcase.input, u_ID)
+        actual_output = run_code(language, code, testcase.input, u_ID,time_limit,memory_limit)
 
         if actual_output == "Time Limit Exceeded":
             return {"verdict": f"TLE on Testcase {i}"}

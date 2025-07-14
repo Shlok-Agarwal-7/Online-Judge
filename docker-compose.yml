@@ -1,5 +1,6 @@
 services:
   web:
+    # image: 438465160983.dkr.ecr.ap-south-1.amazonaws.com/online_judge_image:latest
     build: .
     container_name: django_app
     ports:
@@ -37,7 +38,6 @@ services:
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
     volumes:
       - pgadmin_data:/var/lib/pgadmin
-
 
 
 volumes:

@@ -5,11 +5,10 @@ from .models import Problem, ProblemTag, Submission, TestCase
 
 # used for sending and receving data of testcase
 class TestCaseSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(required=False)
 
     class Meta:
         model = TestCase
-        fields = ("id", "input", "output")
+        fields = ("input", "output")
 
 
 class ProblemTagSerializer(serializers.ModelSerializer):
