@@ -12,10 +12,10 @@ from accounts.models import Profile
 from .models import Problem
 
 
-
-def set_limits(MEMORY_LIMIT_MB = 512):
+def set_limits(MEMORY_LIMIT_MB=512):
     try:
         import resource
+
         memory_bytes = MEMORY_LIMIT_MB * 1024 * 1024
         resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
         resource.setrlimit(resource.RLIMIT_DATA, (memory_bytes, memory_bytes))
@@ -23,7 +23,7 @@ def set_limits(MEMORY_LIMIT_MB = 512):
         pass
 
 
-def run_code(langauge, code, input_data, u_ID=None,memory_limit = 512,time_limit = 3):
+def run_code(langauge, code, input_data, u_ID=None, memory_limit=512, time_limit=3):
     project_dir = Path(settings.BASE_DIR)
     directories = ["code", "input", "output", "compiled"]
 
@@ -69,7 +69,9 @@ def run_code(langauge, code, input_data, u_ID=None,memory_limit = 512,time_limit
             )
 
             if compile_result.returncode != 0:
-                output_file_path.write("Compilation Error : \n" + compile_result.stderr)
+                output_file_path.write_text(
+                    "Compilation Error : \n" + compile_result.stderr
+                )
                 return output_file_path.read_text()
 
             run_cmd = [str(exec_path)]
@@ -90,7 +92,7 @@ def run_code(langauge, code, input_data, u_ID=None,memory_limit = 512,time_limit
                     stdin=input_file,
                     stdout=output_file,
                     stderr=output_file,
-                    preexec_fn=set_limits(memory_limit),
+                    # preexec_fn=set_limits(memory_limit),
                     timeout=time_limit,
                 )
         if result.returncode != 0:
@@ -126,26 +128,35 @@ def submit_code(language, code, problem_id):
     u_ID = str(uuid.uuid4())
 
     testcases = Problem.objects.get(id=problem_id).testcases.all()
-    time_limit = Problem.objects.get(id = problem_id).time_limit
-    memory_limit = Problem.objects.get(id = problem_id).memory_limit
+    time_limit = Problem.objects.get(id=problem_id).time_limit
+    memory_limit = Problem.objects.get(id=problem_id).memory_limit
 
     pattern1 = r"^(Compilation Error) :"
     pattern2 = r"^(RunTime Error) :"
     i = 1
 
     for testcase in testcases:
-        actual_output = run_code(language, code, testcase.input, u_ID,time_limit,memory_limit)
+        actual_output = run_code(
+            language, code, testcase.input, u_ID, time_limit, memory_limit
+        )
 
+        print(actual_output)
+        
         if actual_output == "Time Limit Exceeded":
             return {"verdict": f"TLE on Testcase {i}"}
+
+        if actual_output == "Memory Limit Exceeded":
+            return {"vedict": f"MLE on Testcase{i}"}
 
         if re.match(pattern1, actual_output):
             return {"verdict": "Compilation Error"}
 
         if re.match(pattern2, actual_output):
+            print("here")
             return {"verdict": f"WA on Testcase {i}"}
 
         if actual_output.strip() != testcase.output.strip():
+            print("here last")
             return {"verdict": f"WA on Testcase {i}"}
 
         i += 1

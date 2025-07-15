@@ -1,11 +1,10 @@
 from django.contrib.auth.models import User
 from rest_framework import generics, status
 from rest_framework.exceptions import NotFound
-
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Profile
 from .serializers import LoginSerializer, ProfileSerializer, RegisterSerializer
@@ -23,6 +22,14 @@ from .serializers import LoginSerializer, ProfileSerializer, RegisterSerializer
 
 }"""
 
+class CurrentUserView(APIView):
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            "username": user.username,
+            "role": user.profile.role,  
+        })
 
 class ProfileDetailAPIView(generics.RetrieveAPIView):
 
@@ -97,7 +104,7 @@ class LoginAPIView(APIView):
                 httponly=True,
                 samesite="Lax",
                 secure=False,
-                max_age=86400,
+                max_age=30 * 24 * 60 * 60,
             )
 
             return res
@@ -132,7 +139,7 @@ class RegisterAPIView(APIView):
                 httponly=True,
                 samesite="Lax",
                 secure=False,
-                max_age=86400,
+                max_age=30 * 24 * 60 * 60,
             )
 
             return res
@@ -153,7 +160,7 @@ class RefreshTokenAPIView(APIView):
 
         try:
             refresh = RefreshToken(refresh_token)
-            access_token = str(refresh.access_token)
+            access_token = refresh.access_token
             return Response({"access": access_token})
 
         except TokenError:
@@ -170,7 +177,7 @@ class LogoutAPIView(APIView):
             refresh_token = request.COOKIES.get("refresh_token")
             token = RefreshToken(refresh_token)
             token.blacklist()
-            res = Response({"detail": "Successfully loggedd out."})
+            res = Response({"detail": "Successfully logged out."})
             res.delete_cookie("refresh_token")
 
             return res
