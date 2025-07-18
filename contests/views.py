@@ -152,6 +152,7 @@ class ContestMakeSubmissionView(APIView):
 
             return Response({"verdict": verdict}, status=201)
 
+
         return Response(serializer.errors, status=400)
 
 

@@ -27,7 +27,7 @@ class ContestSerializer(serializers.ModelSerializer):
         if attrs["start_time"] >= attrs["end_time"]:
             raise serializers.ValidationError(
                 {"detail": "End time must be after start time."}
-            )
+
 
         return attrs
 
@@ -68,6 +68,7 @@ class AddExistingProblemSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         contest = self.context["contest"]
+              
         try:
             problem = Problem.objects.get(id=validated_data["problem_id"])
         except Problem.DoesNotExist:

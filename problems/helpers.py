@@ -101,6 +101,7 @@ def execute_code(language, exec_path, u_id, input_data, time_limit, memory_limit
             )
         
         output_data = output_file_path.read_text()
+  
         if result.returncode != 0:
             if "MemoryError" in output_data or result.returncode in [-9, 137]:
                 return "Memory Limit Exceeded"
