@@ -22,6 +22,14 @@ from .serializers import LoginSerializer, ProfileSerializer, RegisterSerializer
 
 }"""
 
+class CurrentUserView(APIView):
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            "username": user.username,
+            "role": user.profile.role,  
+        })
 
 class ProfileDetailAPIView(generics.RetrieveAPIView):
 
@@ -95,8 +103,8 @@ class LoginAPIView(APIView):
                 value=refresh_token,
                 httponly=True,
                 samesite="Lax",
-                secure=False,
-                max_age=86400,
+                secure= False,
+                max_age=30 * 24 * 60 * 60,
             )
 
             return res
@@ -130,8 +138,8 @@ class RegisterAPIView(APIView):
                 value=refresh_token,
                 httponly=True,
                 samesite="Lax",
-                secure=False,
-                max_age=86400,
+                secure= False,
+                max_age=30 * 24 * 60 * 60,
             )
 
             return res
@@ -152,8 +160,8 @@ class RefreshTokenAPIView(APIView):
 
         try:
             refresh = RefreshToken(refresh_token)
-            access_token = str(refresh.access_token)
-            return Response({"access": access_token})
+            access_token = refresh.access_token
+            return Response({"access": str(access_token)})
 
         except TokenError:
             return Response({"detail": "Invalid token"}, status=401)
@@ -169,7 +177,7 @@ class LogoutAPIView(APIView):
             refresh_token = request.COOKIES.get("refresh_token")
             token = RefreshToken(refresh_token)
             token.blacklist()
-            res = Response({"detail": "Successfully loggedd out."})
+            res = Response({"detail": "Successfully logged out."})
             res.delete_cookie("refresh_token")
 
             return res

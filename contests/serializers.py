@@ -17,25 +17,17 @@ class ContestSerializer(serializers.ModelSerializer):
         return obj.created_by.username
 
     def validate(self, attrs):
+        title = attrs.get("title")
 
-        name = attrs.get("title")
-        start_time = attrs.get("start_time")
-        end_time = attrs.get("end_time")
-
-        if Contest.objects.filter(title=name).exists():
+        if Contest.objects.filter(title=title).exists():
             raise serializers.ValidationError(
-                "Contest name already in use pick a new one"
+                {"detail": "Contest with the same name already exists"}
             )
 
-        if Contest.objects.filter(start_time=start_time).exists():
+        if attrs["start_time"] >= attrs["end_time"]:
             raise serializers.ValidationError(
-                "Another Contest at the same time pick another time"
-            )
+                {"detail": "End time must be after start time."}
 
-        if Contest.objects.filter(end_time=end_time).exists():
-            raise serializers.ValidationError(
-                "Another Contest at the same time pick another time"
-            )
 
         return attrs
 
@@ -70,13 +62,18 @@ class AddExistingProblemSerializer(serializers.ModelSerializer):
     def validate_problem_id(self, value):
         if ContestProblem.objects.filter(problem_id=value).exists():
             raise serializers.ValidationError(
-                "This problem is already added to another contest."
+                {"detail": "This problem is already added to another contest"}
             )
         return value
 
     def create(self, validated_data):
         contest = self.context["contest"]
-        problem = Problem.objects.get(id=validated_data["problem_id"])
+              
+        try:
+            problem = Problem.objects.get(id=validated_data["problem_id"])
+        except Problem.DoesNotExist:
+            raise serializers.ValidationError({"problem_id": "Invalid problem ID"})
+
         return ContestProblem.objects.create(
             contest=contest, problem=problem, order=validated_data["order"]
         )

@@ -5,11 +5,10 @@ from .models import Problem, ProblemTag, Submission, TestCase
 
 # used for sending and receving data of testcase
 class TestCaseSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(required=False)
 
     class Meta:
         model = TestCase
-        fields = ("id", "input", "output")
+        fields = ("input", "output")
 
 
 class ProblemTagSerializer(serializers.ModelSerializer):
@@ -76,6 +75,14 @@ class ProblemSerializer(serializers.ModelSerializer):
             "memory_limit",
             "blacklist"
         )
+    
+    def validate(self, attrs):
+        title = attrs.get("title")
+
+        if self.instance == None and Problem.objects.filter(title = title).exists():
+            raise serializers.ValidationError({"detail" : "Similar problem with same title already exists"})
+
+        return attrs
 
     def create(self, validated_data):
 

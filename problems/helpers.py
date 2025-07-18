@@ -2,6 +2,7 @@ import re
 import subprocess
 import uuid
 from pathlib import Path
+import shutil
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -11,145 +12,191 @@ from accounts.models import Profile
 
 from .models import Problem
 
-MEMORY_LIMIT_MB = 64
+def normalize_output(text):
+    return text.replace('\r\n', '\n').strip()
 
+# A dedicated temporary directory for all execution-related files
+TEMP_EXEC_DIR = Path('/tmp/online_judge/')
 
-def set_limits():
+def set_limits(memory_limit_mb):
+    """Sets memory limits for the child process."""
     try:
         import resource
-        memory_bytes = MEMORY_LIMIT_MB * 1024 * 1024
+        memory_bytes = memory_limit_mb * 1024 * 1024
         resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
         resource.setrlimit(resource.RLIMIT_DATA, (memory_bytes, memory_bytes))
-    except ImportError:
+    except (ImportError, ValueError):
         pass
 
-
-def run_code(langauge, code, input_data, u_ID=None):
-    project_dir = Path(settings.BASE_DIR)
-    directories = ["code", "input", "output", "compiled"]
-
-    for directory in directories:
-        dir_path = project_dir / directory
-
-        if not dir_path.exists():
-            dir_path.mkdir(parents=True, exist_ok=True)
-
-    code_dir = project_dir / "code"
-    input_dir = project_dir / "input"
-    output_dir = project_dir / "output"
-    compiled_dir = project_dir / "compiled"
-
-    if u_ID == None:
-        u_ID = str(uuid.uuid4())
-
-    code_file = f"{u_ID}.{langauge}"
-    input_file = f"{u_ID}.txt"
-    output_file = f"{u_ID}.txt"
-
-    code_file_path = code_dir / code_file
-    input_file_path = input_dir / input_file
-    output_file_path = output_dir / output_file
-
-    with open(code_file_path, "w") as code_file:
-        code_file.write(code)
-
-    with open(input_file_path, "w") as input_file:
-        input_file.write(input_data)
-
-    with open(output_file_path, "w") as output_file:
-        pass
-
-    exec_path = None
-    try:
-        run_cmd = []
-        if langauge == "cpp":
-            exec_path = compiled_dir / f"{u_ID}.out"
-            compiled_cmd = ["g++", str(code_file_path), "-o", str(exec_path)]
-            compile_result = subprocess.run(
-                compiled_cmd, capture_output=True, text=True
+def compile_code(language, code_path, u_id):
+    """Compiles the code and returns the path to the executable or errors."""
+    compiled_dir = TEMP_EXEC_DIR / "compiled"
+    compiled_dir.mkdir(parents=True, exist_ok=True)
+    
+    if language == "cpp":
+        exec_path = compiled_dir / f"{u_id}.out"
+        compile_cmd = ["g++", str(code_path), "-o", str(exec_path)]
+        try:
+            result = subprocess.run(
+                compile_cmd, capture_output=True, text=True, timeout=10
             )
+            if result.returncode != 0:
+                return None, "Compilation Error: " + result.stderr
+            return exec_path, None
+        except subprocess.TimeoutExpired:
+            return None, "Compilation Error: Timeout"
 
-            if compile_result.returncode != 0:
-                output_file_path.write("Compilation Error : \n" + compile_result.stderr)
-                return output_file_path.read_text()
+    elif language == "java":
+        # For Java, the "executable" is the class name, and we need the directory path
+        class_dir = code_path.parent
+        compile_cmd = ["javac", str(code_path)]
+        try:
+            result = subprocess.run(
+                compile_cmd, capture_output=True, text=True, timeout=10
+            )
+            if result.returncode != 0:
+                return None, "Compilation Error: " + result.stderr
+            # Return the directory containing the .class file
+            return class_dir, None
+        except subprocess.TimeoutExpired:
+            return None, "Compilation Error: Timeout"
 
-            run_cmd = [str(exec_path)]
+    elif language == "py":
+        # Python is interpreted, no compilation needed
+        return code_path, None
+        
+    return None, "Unsupported language"
 
-        elif langauge == "py":
-            run_cmd = ["python", str(code_file_path)]
+def execute_code(language, exec_path, u_id, input_data, time_limit, memory_limit):
+    """Executes the code/compiled executable and returns the output."""
+    input_dir = TEMP_EXEC_DIR / "input"
+    output_dir = TEMP_EXEC_DIR / "output"
+    input_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-        elif langauge == "java":
-            run_cmd = ["java", str(code_file_path)]
+    input_file_path = input_dir / f"{u_id}.txt"
+    output_file_path = output_dir / f"{u_id}.txt"
+    input_file_path.write_text(input_data)
+    output_file_path.touch()
 
-        else:
-            return "Unsupported language"
+    run_cmd = []
+    if language == "cpp":
+        run_cmd = [str(exec_path)]
+    elif language == "py":
+        run_cmd = ["python", str(exec_path)]
+    elif language == "java":
+        class_name = f"{u_id}"
+        run_cmd = ["java", "-cp", str(exec_path), class_name]
 
-        with open(input_file_path, "r") as input_file:
-            with open(output_file_path, "w") as output_file:
-                result = subprocess.run(
-                    run_cmd,
-                    stdin=input_file,
-                    stdout=output_file,
-                    stderr=output_file,
-                    # preexec_fn=set_limits,
-                    timeout=3,
-                )
+    try:
+        with open(input_file_path, "r") as input_f, open(output_file_path, "w") as output_f:
+            result = subprocess.run(
+                run_cmd,
+                stdin=input_f,
+                stdout=output_f,
+                stderr=subprocess.STDOUT,
+                preexec_fn=lambda: set_limits(memory_limit),
+                timeout=time_limit,
+                text=True
+            )
+        
+        output_data = output_file_path.read_text()
+  
         if result.returncode != 0:
-            if result.returncode == -9 or result.returncode == 137:
-                output_file_path.write_text("Memory Limit Exceeded")
+            if "MemoryError" in output_data or result.returncode in [-9, 137]:
+                return "Memory Limit Exceeded"
+            return "RunTime Error: " + output_data
+        return output_data
 
     except subprocess.TimeoutExpired:
-        output_file_path.write_text("Time Limit Exceeded")
-
+        return "Time Limit Exceeded"
     except Exception as e:
-        output_file_path.write_text("RunTime Error : \n" + str(e))
-
+        return "RunTime Error: " + str(e)
     finally:
-        with open(output_file_path, "r") as output_file:
-            output_data = output_file.read()
-        for path in [code_file_path, input_file_path, output_file_path]:
-            try:
-                if path and path.exists():
-                    path.unlink()
-            except Exception as cleanup_err:
-                print(f"Error cleaning up {path}: {cleanup_err}")
-        try:
-            if exec_path != None:
-                exec_path.unlink()
-        except Exception as cleanup_err:
-            print(f"Error cleaning up  : {cleanup_err}")
+        # Clean up input/output files for the current run
+        input_file_path.unlink(missing_ok=True)
+        output_file_path.unlink(missing_ok=True)
 
-    return output_data
 
+def run_code(language, code, input_data, time_limit=5, memory_limit=128):
+    """Orchestrates a single run of code with custom input."""
+    u_id = str(uuid.uuid4())
+    code_dir = TEMP_EXEC_DIR / "code"
+    code_dir.mkdir(parents=True, exist_ok=True)
+    code_file_path = code_dir / f"{u_id}.{language}"
+    code_file_path.write_text(code)
+
+    exec_path, error = compile_code(language, code_file_path, u_id)
+    
+    if error:
+        # Cleanup and return compilation error
+        shutil.rmtree(code_dir, ignore_errors=True)
+        return error
+
+    output = execute_code(language, exec_path, u_id, input_data, time_limit, memory_limit)
+    
+    # Final cleanup
+    if language in ["cpp", "java"]:
+        compiled_dir = TEMP_EXEC_DIR / "compiled"
+        shutil.rmtree(compiled_dir, ignore_errors=True)
+        if language == "java":
+            # remove .class file
+             (code_dir / f"{u_id}.class").unlink(missing_ok=True)
+
+    code_file_path.unlink(missing_ok=True)
+    
+    return output
 
 def submit_code(language, code, problem_id):
+    """Orchestrates a submission against all testcases."""
+    problem = Problem.objects.get(id=problem_id)
+    u_id = str(uuid.uuid4())
 
-    u_ID = str(uuid.uuid4())
+    
+    code_dir = TEMP_EXEC_DIR / "code"
+    code_dir.mkdir(parents=True, exist_ok=True)
+    code_file_path = code_dir / f"{u_id}.{language}"
+    code_file_path.write_text(code)
 
-    testcases = Problem.objects.get(id=problem_id).testcases.all()
+    # 1. Compile the code once
+    exec_path, compile_error = compile_code(language, code_file_path, u_id)
+    if compile_error:
+        code_file_path.unlink(missing_ok=True)
+        return {"verdict": compile_error}
 
-    pattern1 = r"^(Compilation Error) :"
-    pattern2 = r"^(RunTime Error) :"
-    i = 1
+    # 2. Run against all testcases
+    verdict = "Accepted"
+    for i, testcase in enumerate(problem.testcases.all(), 1):
+        output = execute_code(
+            language,
+            exec_path,
+            u_id,
+            testcase.input,
+            problem.time_limit,
+            problem.memory_limit
+        )
 
-    for testcase in testcases:
-        actual_output = run_code(language, code, testcase.input, u_ID)
+        if normalize_output(output) != normalize_output(testcase.output):
+            if "Time Limit Exceeded" in output:
+                verdict = f"TLE on Testcase {i}"
+            elif "Memory Limit Exceeded" in output:
+                verdict = f"MLE on Testcase {i}"
+            elif "RunTime Error" in output:
+                verdict = f"Runtime Error on Testcase {i}"
+            else:
+                verdict = f"WA on Testcase {i}"
+            break  # Stop on first failure
 
-        if actual_output == "Time Limit Exceeded":
-            return {"verdict": f"TLE on Testcase {i}"}
+    # 3. Final Cleanup
+    code_file_path.unlink(missing_ok=True)
+    if language == "cpp":
+        exec_path.unlink(missing_ok=True)
+    elif language == "java":
+        # exec_path is a directory, and the .class file is inside it
+        class_file = exec_path / f"{u_id}.class"
+        class_file.unlink(missing_ok=True)
 
-        if re.match(pattern1, actual_output):
-            return {"verdict": "Compilation Error"}
-
-        if re.match(pattern2, actual_output):
-            return {"verdict": f"WA on Testcase {i}"}
-
-        if actual_output.strip() != testcase.output.strip():
-            return {"verdict": f"WA on Testcase {i}"}
-
-        i += 1
-
-    return {"verdict": "Accepted"}
+    return {"verdict": verdict}
 
 
 def update_rank_on_point_increase(user_profile, old_points, new_points):
@@ -160,6 +207,7 @@ def update_rank_on_point_increase(user_profile, old_points, new_points):
     )
     all_profiles = affected_profiles + [user_profile]
     all_profiles.sort(key=lambda p: (-p.points, p.user.username))
+
 
     min_rank = Profile.objects.filter(points__gt=new_points).count() + 1
 
@@ -179,7 +227,6 @@ def update_user_score_if_first_ac(user_id, problem_id):
             problem.submissions.filter(verdict="Accepted", user=user)
             .exclude(verdict="Pending").exists()
         )
-
 
 
         if already_accepted:
