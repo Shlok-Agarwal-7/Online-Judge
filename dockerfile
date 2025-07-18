@@ -18,9 +18,9 @@ EXPOSE 8000
 ENV PYTHONUNBUFFERED 1
 ENV DJANGO_SETTINGS_MODULE OJ.settings
 
-# RUN pip install gunicorn
+RUN pip install gunicorn
 
-CMD ["python","manage.py","runserver","0.0.0.0:8000"]
+# CMD ["python","manage.py","runserver","0.0.0.0:8000"]
 
-# CMD ["gunicorn", "--bind", "0.0.0.0:8000", "OJ.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "OJ.wsgi:application"]
 

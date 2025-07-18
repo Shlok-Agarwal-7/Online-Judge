@@ -114,7 +114,9 @@ class ContestMakeSubmissionView(APIView):
             problem_id = serializer.validated_data["problem_id"]
             user = request.user
 
+
             contest = get_object_or_404(Contest, id=self.kwargs.get("contest_id"))
+
 
             if not contest.is_running:
                 return Response(
@@ -126,8 +128,10 @@ class ContestMakeSubmissionView(APIView):
 
             problem = get_object_or_404(Problem, id=problem_id)
 
+
             result = submit_code(language, code, problem_id)
             verdict = result.get("verdict")
+
 
             if verdict == "Accepted":
                 update_user_score_if_first_ac(user.id, problem.id)
@@ -140,18 +144,18 @@ class ContestMakeSubmissionView(APIView):
                 user=user,
             )
 
+
             contest_submission = ContestSubmission.objects.create(
                 submission=submission, submission_time=timezone.now(), contest=contest
             )
 
 
-            response_serializer = ContestSerializer(submission)
-            return Response(response_serializer.data, status=201)
+            return Response({"verdict": verdict}, status=201)
 
         return Response(serializer.errors, status=400)
 
-class getContestLeaderboardView(APIView):
-    def get(self,request,*args, **kwargs):
-        contest_id = self.kwargs.get("contest_id")
-        contest = get_object_or_404(Contest,id = contest_id)
 
+class getContestLeaderboardView(APIView):
+    def get(self, request, *args, **kwargs):
+        contest_id = self.kwargs.get("contest_id")
+        contest = get_object_or_404(Contest, id=contest_id)

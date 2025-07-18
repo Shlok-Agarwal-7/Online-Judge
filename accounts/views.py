@@ -103,7 +103,7 @@ class LoginAPIView(APIView):
                 value=refresh_token,
                 httponly=True,
                 samesite="Lax",
-                secure=False,
+                secure= False,
                 max_age=30 * 24 * 60 * 60,
             )
 
@@ -138,7 +138,7 @@ class RegisterAPIView(APIView):
                 value=refresh_token,
                 httponly=True,
                 samesite="Lax",
-                secure=False,
+                secure= False,
                 max_age=30 * 24 * 60 * 60,
             )
 
@@ -161,7 +161,7 @@ class RefreshTokenAPIView(APIView):
         try:
             refresh = RefreshToken(refresh_token)
             access_token = refresh.access_token
-            return Response({"access": access_token})
+            return Response({"access": str(access_token)})
 
         except TokenError:
             return Response({"detail": "Invalid token"}, status=401)
