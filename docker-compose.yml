@@ -1,16 +1,15 @@
 services:
   web:
-    # image: 438465160983.dkr.ecr.ap-south-1.amazonaws.com/online_judge_image:latest
     build: .
     container_name: django_app
     ports:
-      - 8000:8000 
+      - 8000:8000
     depends_on:
       db:
-          condition: service_healthy
-          restart : true
+        condition: service_healthy
+        restart: true
     env_file:
-      - .env
+      - .env 
   db:
     image: postgres:17
     container_name: postgres_db
@@ -38,7 +37,6 @@ services:
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
     volumes:
       - pgadmin_data:/var/lib/pgadmin
-
 
 volumes:
   postgres_db:

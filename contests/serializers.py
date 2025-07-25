@@ -27,6 +27,7 @@ class ContestSerializer(serializers.ModelSerializer):
         if attrs["start_time"] >= attrs["end_time"]:
             raise serializers.ValidationError(
                 {"detail": "End time must be after start time."}
+            )
 
 
         return attrs

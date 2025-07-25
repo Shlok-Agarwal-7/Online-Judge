@@ -4,14 +4,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Profile
 
-# class CustomRefreshToken(RefreshToken):
-#     @classmethod
-#     def for_user(cls, user):
-#         token = super().for_user(user)
-#         token["username"] = user.username
-#         token["role"] = user.profile.role
-#         return token
-
 
 class ProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username")
