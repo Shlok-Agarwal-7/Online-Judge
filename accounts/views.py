@@ -9,18 +9,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Profile
 from .serializers import LoginSerializer, ProfileSerializer, RegisterSerializer
 
-""" Student role{
-    "username" : "Student",
-    "password" : "test123",
-    "email" : "student@student.com"
-
-
-    Mentor role{
-    "username" : "mentor",
-    "password" : "test123",
-    "email": "mentor@mentor.com}
-
-}"""
 
 class CurrentUserView(APIView):
 

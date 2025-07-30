@@ -8,6 +8,7 @@ from rest_framework import generics
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
 
 from .helpers import get_ai_hint, run_code, submit_code, update_rank_on_point_increase
 from .models import Problem, ProblemTag, Submission, TestCase
@@ -170,28 +171,34 @@ class SubmitCodeView(APIView):
 
 class GetUserForProblemSubmissions(generics.ListAPIView):
     serializer_class = SubmissionSerializer
+    pagination_class = PageNumberPagination
+    pagination_class.page_size = 10
 
     def get_queryset(self):
         problem_id = self.request.query_params.get("problem")
         if not problem_id:
             return Submission.objects.none()
 
-        return Submission.objects.filter(problem=problem_id, user=self.request.user)
+        return Submission.objects.filter(problem=problem_id, user=self.request.user).order_by("-id")
 
 
 class GetAllSubmissions(generics.ListAPIView):
     serializer_class = SubmissionSerializer
+    pagination_class = PageNumberPagination
+    pagination_class.page_size = 10
 
     def get_queryset(self):
         problem_id = self.request.query_params.get("problem")
         if not problem_id:
             return Submission.objects.none()
 
-        return Submission.objects.filter(problem=problem_id)
+        return Submission.objects.filter(problem=problem_id).order_by("-id")
 
 
 class MySubmissions(generics.ListAPIView):
     serializer_class = SubmissionSerializer
+    pagination_class = PageNumberPagination
+    pagination_class.page_size = 10
 
     def get_queryset(self):
         username = self.kwargs.get("username")
